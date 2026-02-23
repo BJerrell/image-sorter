@@ -112,7 +112,11 @@ class ClipSuggester:
             img = Image.open(path).convert("RGB")
             inputs = self._processor(images=img, return_tensors="pt")
             with torch.no_grad():
-                feat = self._model.get_image_features(**inputs)
+                output = self._model.get_image_features(**inputs)
+                # transformers 5.x returns an output object; older versions return a tensor
+                feat = output if torch.is_tensor(output) else (
+                    output.image_embeds if hasattr(output, 'image_embeds') else output.pooler_output
+                )
                 feat = feat / feat.norm(dim=-1, keepdim=True)
             return feat.squeeze().cpu().numpy()
         except Exception:
